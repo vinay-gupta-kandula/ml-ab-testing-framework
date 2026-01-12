@@ -5,6 +5,9 @@ services:
     build: .
     ports:
       - "8000:8000"
-      - "8501:8501"
+      - "8501:8501" # Expose Streamlit port
+    volumes:
+      - ./data:/app/data  # THIS SECURES PERSISTENCE: Maps local folder to container
     environment:
       - DATABASE_NAME=/app/data/ab_test_logs.db
+    restart: always

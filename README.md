@@ -1,69 +1,69 @@
 # 🚀 ML A/B Testing Framework
 
-This project implements a **production-style A/B testing system** for machine learning models.  
-It demonstrates how real-world companies test ML systems by routing live traffic to multiple models and collecting evidence to decide which is better.
+This project implements a **production-grade A/B testing system** for machine learning models, similar to what real tech companies deploy.
+It supports deterministic routing, sticky user assignment, persistent logging, automated statistics, and a live dashboard.
 
 ---
 
-## 🎯 What This Project Includes
+## 🎯 Key Features (Submission-Ready)
 
-* 🧠 Two trained ML models (Random Forest & Logistic Regression)
-* ⚡ FastAPI prediction API with A/B split (50/50 traffic)
-* 🗄️ SQLite logging of predictions + latency
-* 📊 Offline statistical analysis (t-tests)
-* 📺 Streamlit dashboard for experiment monitoring
-* 📦 Docker containerization for reproducible deployment
-* 🧪 PyTest suite validating API behavior
+* 🧠 Two ML variants: Logistic Regression (Control) & Random Forest (Treatment)
+* 🔀 **Deterministic traffic split using MD5 hashing** of `user_id`
+* ♻️ Sticky assignment — same user always gets same model
+* ⚡ FastAPI serving with background DB logging
+* 🗄️ SQLite persistence mounted to disk
+* 📈 Welch’s T-test statistical comparison
+* 📺 Streamlit dashboard to monitor results
+* 🧪 Automated pytest suite already passing
+* 🐳 Fully containerized with Docker & Compose
+* 🎛 submission.yml for automated build → deploy → test → analyze
 
 ---
 
 ## 📁 Project Structure
 
 ```
-
 ml-ab-testing-framework/
 │
 ├── api/
-│   ├── main.py               # FastAPI service + logging + A/B routing
+│   ├── main.py                  # FastAPI service + hashing + logging
 │   ├── models/
-│   │   ├── model_A.pkl       # Logistic Regression
-│   │   ├── model_B.pkl       # Random Forest
-│   │   └── feature_cols.pkl  # 46 feature columns
-│   └── **init**.py
+│   │   ├── model_A.pkl
+│   │   ├── model_B.pkl
+│   │   └── feature_cols.pkl
+│   └── __init__.py
 │
 ├── analysis/
-│   ├── run_analysis.py       # Statistical evaluation + JSON export
-│   ├── dashboard.py          # Streamlit UI for visual analytics
-│   └── **init**.py
+│   ├── run_analysis.py          # Welch’s T-test + JSON results
+│   ├── dashboard.py             # Streamlit visual dashboard
+│   └── __init__.py
 │
-├── data/                     # Holds SQLite DB (persisted on disk)
+├── data/                        # SQLite DB persists here
 │   └── telco/
 │       └── WA_Fn-UseC_-Telco-Customer-Churn.csv
 │
 ├── tests/
-│   ├── test_api.py           # Validates API + logging
-│   └── **init**.py
+│   ├── test_api.py              # Verifies model routing & DB logging
+│   └── __init__.py
 │
-├── train_models.py           # Trains both models from dataset
+├── train_models.py              # Train + save models & feature columns
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
 ├── METHODOLOGY.md
-├── video.txt                 # contains public url to access the video 
-└── submission.yml
-
-
-````
+├── submission.yml
+└── video.txt
+```
 
 ---
 
-# 🧠 STEP 1 — Train Models (Run Once)
+## 🧠 STEP 1 — Train Models (Run Locally Once)
 
 ```bash
 python train_models.py
-````
+```
 
-This loads the Telco dataset, generates features, and saves:
+Outputs:
 
 * `model_A.pkl`
 * `model_B.pkl`
@@ -71,21 +71,21 @@ This loads the Telco dataset, generates features, and saves:
 
 ---
 
-# 🚢 STEP 2 — Build & Run with Docker
+## 🚢 STEP 2 — Build & Run via Docker
 
-### Build
+### Build images
 
 ```bash
 docker-compose build
 ```
 
-### Run container (API + DB)
+### Start stack (API + DB volume)
 
 ```bash
 docker-compose up -d
 ```
 
-### Verify running
+Verify running:
 
 ```bash
 docker ps
@@ -93,53 +93,54 @@ docker ps
 
 ---
 
-# 🏁 STEP 3 — Make Predictions Through API
+## 🏁 STEP 3 — Make Deterministic API Requests
 
-Open:
+Swagger docs:
 
 ```
 http://localhost:8000/docs
 ```
 
-Select **POST /predict**
-Paste EXACTLY this JSON (46 features):
+### Required JSON (46 feature values + user_id):
 
 ```json
 {
+  "user_id": "customer_99",
   "features": [0,1,29.85,29.85,1,0,0,1,1,0,1,0,0,1,0,1,0,0,1,0,0,0,0,1,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,1]
 }
 ```
 
-Each request is randomly routed:
+➡️ Same `user_id` → always same model
+➡️ Different user_ids → balanced 50/50 split
 
-* Model A (Logistic Regression)
-* Model B (Random Forest)
+All requests log to:
 
-Requests are logged in `/data/ab_test_logs.db`.
+```
+./data/ab_test_logs.db
+```
 
 ---
 
-# 📊 STEP 4 — Run A/B Test Statistical Analysis
-
-After sending several requests:
+## 📊 STEP 4 — Statistical Analysis
 
 ```bash
 docker-compose exec api python analysis/run_analysis.py
 ```
 
-This prints:
+Output includes:
 
-* Count of A vs B samples
+* Request counts by model
 * Mean prediction comparison
-* Latency t-test (p-value)
+* Welch’s T-test p-value
+* Winner indication
 
-Results saved to:
+JSON results stored in:
 
 ```
 analysis/results.json
 ```
 
-View it:
+Inspect:
 
 ```bash
 docker-compose exec api cat analysis/results.json
@@ -147,47 +148,35 @@ docker-compose exec api cat analysis/results.json
 
 ---
 
-# 📺 STEP 5 — View A/B Dashboard (Streamlit)
+## 📺 STEP 5 — View Streamlit Dashboard
 
-Launch dashboard inside Docker:
+Run UI:
 
 ```bash
 docker-compose exec api streamlit run analysis/dashboard.py --server.address=0.0.0.0 --server.port=8501
 ```
 
-Streamlit prints:
-
-```
-URL: http://0.0.0.0:8501
-```
-
-OPEN this in browser (not 0.0.0.0):
+Open in browser:
 
 ```
 http://localhost:8501
 ```
 
-OR
-
-```
-http://127.0.0.1:8501
-```
-
-Dashboard Shows:
-✔ Logged requests
-✔ A vs B request split
-✔ Prediction averages
+Dashboard shows:
+✔ Raw logs
+✔ A/B request volume
+✔ Mean predicted churn per model
 ✔ p-value significance
 
 ---
 
-# 🧪 STEP 6 — Run Tests
+## 🧪 STEP 6 — Run Automated Tests
 
 ```bash
 docker-compose exec api pytest -q
 ```
 
-Expected output:
+Expected:
 
 ```
 ..
@@ -196,13 +185,13 @@ Expected output:
 
 ---
 
-# 🛑 STEP 7 — Shut Down System
+## 🛑 STEP 7 — Shut Down
 
 ```bash
 docker-compose down
 ```
 
-Database remains safe in:
+SQLite logs are preserved in:
 
 ```
 ./data/ab_test_logs.db
@@ -210,57 +199,44 @@ Database remains safe in:
 
 ---
 
-# ⚡ Local (Non-Docker) Mode
+## ⚡ OPTIONAL — Run Without Docker
 
-### Install dependencies
+Install deps:
 
 ```bash
 pip install -r api/requirements.txt
 ```
 
-### Run API locally
+Run API:
 
 ```bash
 uvicorn api.main:app --reload
 ```
 
-Visit:
-
-```
-http://localhost:8000/docs
-```
-
-### Run analysis
+Run analysis:
 
 ```bash
 python analysis/run_analysis.py
 ```
 
-### Run Streamlit
+Dashboard:
 
 ```bash
 streamlit run analysis/dashboard.py
 ```
 
-Open:
-
-```
-http://localhost:8501
-```
-
 ---
 
-# 🌟 Tech Stack Summary
+## 🌟 Core Tech Stack
 
-| Component                           | Role                 |
-| ----------------------------------- | -------------------- |
-| FastAPI                             | Serves ML inference  |
-| Logistic Regression / Random Forest | Model variants       |
-| SQLite                              | Persistent logging   |
-| Pandas / NumPy                      | Feature handling     |
-| SciPy                               | Statistical testing  |
-| Streamlit                           | Experiment dashboard |
-| Docker + Compose                    | Deployment           |
-| Pytest                              | Automated testing    |
+| Component                           | Role                            |
+| ----------------------------------- | ------------------------------- |
+| FastAPI                             | Model serving, hashing, logging |
+| Logistic Regression / Random Forest | Competing ML variants           |
+| SQLite                              | Persistent A/B logging          |
+| SciPy                               | Welch’s T-test                  |
+| Streamlit                           | Live experiment dashboard       |
+| Docker + Compose                    | Runtime consistency             |
+| Pytest                              | Automated verification          |
 
 

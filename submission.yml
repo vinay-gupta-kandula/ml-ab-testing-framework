@@ -5,8 +5,12 @@ deploy:
   - docker-compose up -d
 
 test:
-  - docker-compose exec api pytest -q
+  # Added -T for non-interactive shells and explicitly pointed to the test file
+  - docker-compose exec -T api pytest tests/test_api.py
 
 analyze:
-  - docker-compose exec api python analysis/run_analysis.py
-  - docker-compose exec api streamlit run analysis/dashboard.py --server.address=0.0.0.0 --server.port=8501
+  - echo "Running Statistical Analysis..."
+  - docker-compose exec -T api python analysis/run_analysis.py
+  - echo "Launching Dashboard in background..."
+  # Use -d (detached) so the automation script can successfully complete
+  - docker-compose exec -d api streamlit run analysis/dashboard.py --server.address=0.0.0.0 --server.port=8501
