@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Mac / Windows hidden files
+.DS_Store
+Thumbs.db
+
+# SQLite DB logs (we DO NOT want to upload 100MB files accidentally)
+data/*.db
+ab_test_logs.db
+
+# Docker
+*.log
+
+

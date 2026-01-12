@@ -1,0 +1,12 @@
+setup:
+  - docker-compose build
+
+deploy:
+  - docker-compose up -d
+
+test:
+  - docker-compose exec api pytest -q
+
+analyze:
+  - docker-compose exec api python analysis/run_analysis.py
+  - docker-compose exec api streamlit run analysis/dashboard.py --server.address=0.0.0.0 --server.port=8501
