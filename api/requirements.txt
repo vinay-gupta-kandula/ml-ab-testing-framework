@@ -10,3 +10,4 @@ scipy
 streamlit
 httpx
 python-dotenv
+plotly
